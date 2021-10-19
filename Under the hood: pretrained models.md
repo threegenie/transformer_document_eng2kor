@@ -95,3 +95,4 @@ attention_mask: [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 
 
 토크나이저에 대해 [이곳](https://huggingface.co/transformers/preprocessing.html)에서 더 자세히 알아볼 수 있습니다.
 
+
