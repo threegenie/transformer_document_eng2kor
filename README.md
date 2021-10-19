@@ -14,5 +14,5 @@
 
 |대분류|소분류|제목|링크|
 |:------|:------|:------|:------|
-|GET STARTED|Quick tour|Getting started on a task with a pipeline|[링크](https://github.com/threegenie/transformer_document_eng2kor/blob/main/Getting%20started%20on%20a%20task%20with%20a%20pipeline.md)|
-|GET STARTED|Quick tour|Under the hood: pretrained models|[링크](https://github.com/threegenie/transformer_document_eng2kor/commit/f13bdbaa4770a344bd80d1129a430da694f5a83a)|
+|GET STARTED|Quick tour|Getting started on a task with a pipeline|[링크](https://github.com/threegenie/transformer_document_eng2kor/blob/main/Quick%20Tour/Getting%20started%20on%20a%20task%20with%20a%20pipeline.md)|
+|GET STARTED|Quick tour|Under the hood: pretrained models|[링크](https://github.com/threegenie/transformer_document_eng2kor/blob/main/Quick%20Tour/Under%20the%20hood:%20pretrained%20models.md)|
