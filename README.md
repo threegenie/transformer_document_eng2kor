@@ -9,7 +9,8 @@
 
 원문 출처 : [Huggingface](https://huggingface.co/transformers/index.html)
 
-블로그 [@Selog](https://threegenie.tistory.com/category/Huggingface%20Transformers)에서도 읽어보실 수 있습니다.
+블로그 [@Selog](https://threegenie.tistory.com/category/Huggingface%20Transformers)에도 업데이트됩니다.
+
 
 |대분류|소분류|제목|링크|
 |:------|:------|:------|:------|
