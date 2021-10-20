@@ -95,4 +95,149 @@ attention_mask: [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 
 
 토크나이저에 대해 [이곳](https://huggingface.co/transformers/preprocessing.html)에서 더 자세히 알아볼 수 있습니다.
 
+### 모델 사용하기
 
+인풋 데이터가 토크나이저를 통해 전처리되면, 모델로 직접 보낼 수 있습니다. 앞서 언급한 것처럼, 모델에 필요한 모든 관련 정보가 포함됩니다. 만약 텐서플로우 모델을 사용한다면 딕셔너리의 키를 직접 텐서로 전달할 수 있고, 파이토치 모델을 사용한다면 '**'을 더해서 딕셔너리를 풀어 줘야 합니다.
+
+```python
+# Pytorch
+pt_outputs = pt_model(**pt_batch)
+```
+
+```python
+# Tensorflow
+tf_outputs = tf_model(tf_batch)
+```
+
+허깅페이스 트랜스포머에서 모든 아웃풋은 다른 메타데이터와 함께 모델의 최종 활성화 상태가 포함된 개체입니다. 이러한 개체는 여기에 더 자세히 설명되어 있습니다. 출력값을 살펴보겠습니다.
+
+```python
+# Pytorch
+print(pt_outputs)
+
+"""
+SequenceClassifierOutput(loss=None, logits=tensor([[-4.0833,  4.3364],
+       [ 0.0818, -0.0418]], grad_fn=<AddmmBackward>), hidden_states=None, attentions=None)
+"""
+```
+
+```python
+# Tensorflow
+print(tf_outputs)
+"""
+TFSequenceClassifierOutput(loss=None, logits=<tf.Tensor: shape=(2, 2), dtype=float32, numpy=
+array([[-4.0833 ,  4.3364  ],
+       [ 0.0818, -0.0418]], dtype=float32)>, hidden_states=None, attentions=None)
+"""
+```
+
+출력된 값에 있는 *logits* 항목에 주목하십시오. 이 항목을 사용하여 모델의 최종 활성화 상태에 접근할 수 있습니다.
+
+주의
+모든 허깅페이스 트랜스포머 모델(파이토치 또는 텐서플로우)은 마지막 활성화 함수가 종종 손실(loss)과 더해지기 때문에 마지막 활성화 함수(소프트맥스 같은)를 적용하기 이전의 모델 활성화 상태를 리턴합니다. 
+
+예측을 위해 소프트맥스 활성화를 적용해 봅시다.
+
+```python
+# Pytorch
+from torch import nn
+pt_predictions = nn.functional.softmax(pt_outputs.logits, dim=-1)
+```
+
+```python
+# Tensorflow
+import tensorflow as tf
+tf_predictions = tf.nn.softmax(tf_outputs.logits, axis=-1)
+```
+
+이전 과정에서 얻어진 숫자들을 볼 수 있습니다.
+
+```python
+# Pytorch
+print(pt_predictions)
+"""
+tensor([[2.2043e-04, 9.9978e-01],
+        [5.3086e-01, 4.6914e-01]], grad_fn=<SoftmaxBackward>)
+"""
+```
+
+```python
+# Tensorflow
+print(tf_predictions)
+"""
+tf.Tensor(
+[[2.2043e-04 9.9978e-01]
+ [5.3086e-01 4.6914e-01]], shape=(2, 2), dtype=float32)
+"""
+```
+
+모델에 인풋 데이터 외에 라벨을 넣는 경우에는, 모델 출력 개체에 다음과 같은 손실(loss) 속성도 포함됩니다.
+
+```python
+# Pytorch
+import torch
+pt_outputs = pt_model(**pt_batch, labels = torch.tensor([1, 0]))
+print(pt_outputs)
+"""
+SequenceClassifierOutput(loss=tensor(0.3167, grad_fn=<NllLossBackward>), logits=tensor([[-4.0833,  4.3364],
+        [ 0.0818, -0.0418]], grad_fn=<AddmmBackward>), hidden_states=None, attentions=None)
+"""
+```
+
+```python
+# Tensorflow
+import tensorflow as tf
+tf_outputs = tf_model(tf_batch, labels = tf.constant([1, 0]))
+print(tf_outputs)
+"""
+TFSequenceClassifierOutput(loss=<tf.Tensor: shape=(2,), dtype=float32, numpy=array([2.2051e-04, 6.3326e-01], dtype=float32)>, logits=<tf.Tensor: shape=(2, 2), dtype=float32, numpy=
+array([[-4.0833 ,  4.3364  ],
+       [ 0.0818, -0.0418]], dtype=float32)>, hidden_states=None, attentions=None)
+"""
+```
+
+모델은 표준 [torch.nn.Module](https://pytorch.org/docs/stable/nn.html#torch.nn.Module)이나 [tf.keras.Model](https://www.tensorflow.org/api_docs/python/tf/keras/Model)로 트레이닝 루프에서 사용할 수 있습니다. 허깅페이스 트랜스포머는 Trainer(텐서플로우에서는 TFTrainer) 클래스를 제공하여 여러분이 모델을 학습시키는 것을 돕습니다(분산 트레이닝, 혼합 정밀도 등과 같은 과정에서는 주의해야 합니다). 자세한 내용은 [트레이닝 튜토리얼](https://huggingface.co/transformers/training.html)을 참조하십시오.
+
+주의
+Pytorch 모델 출력은 IDE의 속성에 대한 자동 완성을 가져올 수 있는 특수 데이터 클래스입니다. 또한 튜플 또는 딕셔너리처럼 작동합니다(정수, 슬라이스 또는 문자열로 인덱싱할 수 있음). 이 경우 설정되지 않은 속성(None 값을 가지고 있는)은 무시됩니다.
+
+모델의 파인튜닝이 끝나면, 아래와 같은 방법으로 토크나이저와 함께 저장할 수 있습니다.
+
+```python
+tokenizer.save_pretrained(save_directory)
+model.save_pretrained(save_directory)
+```
+
+그런 다음 모델 이름 대신 디렉토리 이름을 전달하여 from_pretrained() 메서드를 사용하여 이 모델을 다시 로드할 수 있습니다. 허깅페이스 트랜스포머의 의 멋진 기능 중 하나는 파이토치와 텐서플로우 간에 쉽게 전환할 수 있다는 것입니다. 이전과 같이 저장된 모델은 파이토치 또는 텐서플로우에서 다시 로드할 수 있습니다. 저장된 파이토치 모델을 텐서플로우 모델에 로드하는 경우 from_pretrained()를 다음과 같이 사용합니다.
+
+```python
+# Pytorch -> Tensorflow
+from transformers import TFAutoModel
+tokenizer = AutoTokenizer.from_pretrained(save_directory)
+model = TFAutoModel.from_pretrained(save_directory, from_pt=True)
+```
+
+저장된 텐서플로우 모델을 파이토치 모델에 로드하는 경우 다음 코드를 사용해야 합니다.
+
+```python
+# Tensorflow -> Pytorch
+from transformers import AutoModel
+tokenizer = AutoTokenizer.from_pretrained(save_directory)
+model = AutoModel.from_pretrained(save_directory, from_tf=True)
+```
+
+마지막으로, 모델의 모든 은닉 상태(hidden state)와 모든 어텐션 가중치(attention weight)를 리턴하도록 설정할 수 있습니다.
+
+```python
+# Pytorch
+pt_outputs = pt_model(**pt_batch, output_hidden_states=True, output_attentions=True)
+all_hidden_states  = pt_outputs.hidden_states
+all_attentions = pt_outputs.attentions
+```
+
+```python
+# Tensorflow
+tf_outputs = tf_model(tf_batch, output_hidden_states=True, output_attentions=True)
+all_hidden_states =  tf_outputs.hidden_states
+all_attentions = tf_outputs.attentions
+```
