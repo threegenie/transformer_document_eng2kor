@@ -241,3 +241,65 @@ tf_outputs = tf_model(tf_batch, output_hidden_states=True, output_attentions=Tru
 all_hidden_states =  tf_outputs.hidden_states
 all_attentions = tf_outputs.attentions
 ```
+
+### 코드에 엑세스하기
+
+*AutoModel* 및 *AutoTokenizer* 클래스는 사전 교육된 모델로 자동으로 이동할 수 있는 바로가기일 뿐입니다. 이면에는 라이브러리가 아키텍처와 클래스의 조합당 하나의 모델 클래스를 가지고 있으므로 필요에 따라 코드를 쉽게 액세스하고 조정할 수 있습니다.
+
+이전 예시에서, 이 모델은 '*distilbert-base-cased-un-finetuned-sst-2-english*'라고 불렸는데, 이는 *[DistilBERT](https://huggingface.co/transformers/model_doc/distilbert.html)* 구조를 사용한다는 뜻입니다. *AutoModelForSequenceClassification*(또는 텐서플로우에서는 *TFAutoModelForSequenceClassification*)이 사용되었으므로 자동으로 생성된 모델은 *DistilBertForSequenceClassification*이 됩니다. 해당 모델의 설명서에서 해당 모델과 관련된 모든 세부 정보를 확인하거나 소스 코드를 찾아볼 수 있습니다. 모델 및 토크나이저를 직접 인스턴스화할 수 있는 방법은 다음과 같습니다.
+
+```python
+# Pytorch
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+model_name = "distilbert-base-uncased-finetuned-sst-2-english"
+model = DistilBertForSequenceClassification.from_pretrained(model_name)
+tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+```
+
+```python
+# Tensorflow
+from transformers import DistilBertTokenizer, TFDistilBertForSequenceClassification
+model_name = "distilbert-base-uncased-finetuned-sst-2-english"
+model = TFDistilBertForSequenceClassification.from_pretrained(model_name)
+tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+```
+
+### 모델 커스터마이징 하기
+
+모델 자체의 빌드 방법을 변경하려면 사용자 정의 구성 클래스를 정의할 수 있습니다. 각 아키텍처에는 고유한 관련 구성(Configuration)이 제공됩니다. 예를 들어, [*DistilBertConfig*](https://huggingface.co/transformers/model_doc/distilbert.html#transformers.DistilBertConfig)를 사용하면 *DistilBERT*에 대한 은닉 차원(hidden dimension), 드롭아웃 비율(dropout rate) 등의 매개변수(parameter)를 지정할 수 있습니다. 은닉 차원의 크기를 변경하는 것과 같이 중요한 수정 작업을 하면 사전 훈련된 모델을 더 이상 사용할 수 없고 처음부터 학습시켜야 합니다. 그런 다음 Config에서 직접 모델을 인스턴스화합니다.
+
+아래에서는 from_pretrained() 메서드를 사용하여 토크나이저에 사전 정의된 어휘를 로드합니다. 그러나 토크나이저와 달리 우리는 처음부터 모델을 초기화하고자 합니다. 따라서 from_pretrained() 방법을 사용하는 대신 Config에서 모델을 인스턴스화합니다.
+
+```python
+# Pytorch
+from transformers import DistilBertConfig, DistilBertTokenizer, DistilBertForSequenceClassification
+config = DistilBertConfig(n_heads=8, dim=512, hidden_dim=4*512)
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+model = DistilBertForSequenceClassification(config)
+```
+
+```python
+# Tensorflow
+from transformers import DistilBertConfig, DistilBertTokenizer, TFDistilBertForSequenceClassification
+config = DistilBertConfig(n_heads=8, dim=512, hidden_dim=4*512)
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+model = TFDistilBertForSequenceClassification(config)
+```
+
+모델 헤드만 변경하는 경우(라벨 수와 같은)에도 사전 훈련된 모델을 사용할 수 있습니다. 예를 들어, 사전 훈련된 모델을 사용하여 10개의 서로 다른 라벨에 대한 분류기(Classifier)를 정의해 보겠습니다. 라벨 수를 변경하기 위해 모든 기본값을 사용하여 새 Config를 생성하는 대신에 Config가 from_pretrained() 메서드에 인수를 전달하면 기본 Config가 적절히 업데이트됩니다.
+
+```python
+# Pytorch
+from transformers import DistilBertConfig, DistilBertTokenizer, DistilBertForSequenceClassification
+model_name = "distilbert-base-uncased"
+model = DistilBertForSequenceClassification.from_pretrained(model_name, num_labels=10)
+tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+```
+
+```python
+# Tensorflow
+from transformers import DistilBertConfig, DistilBertTokenizer, TFDistilBertForSequenceClassification
+model_name = "distilbert-base-uncased"
+model = TFDistilBertForSequenceClassification.from_pretrained(model_name, num_labels=10)
+tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+```
