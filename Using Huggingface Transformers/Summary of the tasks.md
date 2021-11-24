@@ -699,3 +699,77 @@ for token, prediction in zip(tokens, predictions[0].numpy()):
 ('[SEP]', 'O')
 """
 ```
+
+### 요약(Summarization)
+
+요약은 문서나 기사를 더 짧은 텍스트로 줄이는 작업입니다. 요약 작업에서 모델을 파인튜닝하려면 [run_summarization.py](https://github.com/huggingface/transformers/tree/master/examples/pytorch/summarization/run_summarization.py)를 활용할 수 있습니다.
+
+요약 데이터셋 예로는 CNN / Daily Mail 데이터셋이 있습니다. 이 데이터셋은 긴 뉴스 기사로 구성되어 있으며 요약 작업을 위해 만들어졌습니다. 요약 작업에서 모델을 파인튜닝하려면, [이 문서](https://github.com/huggingface/transformers/blob/master/examples/pytorch/summarization/README.md)에서 다양한 접근 방식을 배울 수 있습니다.
+
+다음은 파이프라인을 사용하여 요약을 수행하는 예입니다. CNN/Daily Mail 데이터셋으로 파인튜닝된 Bart 모델을 활용합니다.
+
+```python
+from transformers import pipeline
+
+summarizer = pipeline("summarization")
+
+ARTICLE = """ New York (CNN)When Liana Barrientos was 23 years old, she got married in Westchester County, New York.
+A year later, she got married again in Westchester County, but to a different man and without divorcing her first husband.
+Only 18 days after that marriage, she got hitched yet again. Then, Barrientos declared "I do" five more times, sometimes only within two weeks of each other.
+In 2010, she married once more, this time in the Bronx. In an application for a marriage license, she stated it was her "first and only" marriage.
+Barrientos, now 39, is facing two criminal counts of "offering a false instrument for filing in the first degree," referring to her false statements on the
+2010 marriage license application, according to court documents.
+Prosecutors said the marriages were part of an immigration scam.
+On Friday, she pleaded not guilty at State Supreme Court in the Bronx, according to her attorney, Christopher Wright, who declined to comment further.
+After leaving court, Barrientos was arrested and charged with theft of service and criminal trespass for allegedly sneaking into the New York subway through an emergency exit, said Detective
+Annette Markowski, a police spokeswoman. In total, Barrientos has been married 10 times, with nine of her marriages occurring between 1999 and 2002.
+All occurred either in Westchester County, Long Island, New Jersey or the Bronx. She is believed to still be married to four men, and at one time, she was married to eight men at once, prosecutors say.
+Prosecutors said the immigration scam involved some of her husbands, who filed for permanent residence status shortly after the marriages.
+Any divorces happened only after such filings were approved. It was unclear whether any of the men will be prosecuted.
+The case was referred to the Bronx District Attorney\'s Office by Immigration and Customs Enforcement and the Department of Homeland Security\'s
+Investigation Division. Seven of the men are from so-called "red-flagged" countries, including Egypt, Turkey, Georgia, Pakistan and Mali.
+Her eighth husband, Rashid Rajput, was deported in 2006 to his native Pakistan after an investigation by the Joint Terrorism Task Force.
+If convicted, Barrientos faces up to four years in prison.  Her next court appearance is scheduled for May 18.
+"""
+```
+
+요약 파이프라인은 *PreTrainedModel.generate()* 메서드에 의존하므로 아래와 같이 파이프라인에서 *max_length* 및 *min_length*에 대한 *PreTrainedModel.generate()*의 기본 인수를 직접 재정의할 수 있습니다. 이렇게 하면 다음과 같은 요약 결과가 출력됩니다.
+
+```python
+print(summarizer(ARTICLE, max_length=130, min_length=30, do_sample=False))
+"""
+[{'summary_text': ' Liana Barrientos, 39, is charged with two counts of "offering a false instrument for filing in
+the first degree" In total, she has been married 10 times, with nine of her marriages occurring between 1999 and
+2002 . At one time, she was married to eight men at once, prosecutors say .'}]
+"""
+```
+
+다음은 모델과 토크나이저를 사용하여 요약을 수행하는 예시입니다. 프로세스는 다음과 같습니다.
+
+1. 체크포인트에서 토크나이저 및 모델을 인스턴스화합니다.  일반적으로 Bart 또는 T5와 같은 인코더-디코더 모델을 사용하여 수행합니다.
+2. 요약해야 할 문서를 정의합니다.
+3. T5의 특수한 접두사인 "summarize: "를 추가합니다.
+4. 요약문 생성을 위해 *PreTrainedModel.generate()* 메서드를 사용합니다.
+
+이 예시에서는 Google의 T5 모델을 사용합니다. 다중 작업 혼합 데이터셋(CNN/Daily Mail 포함)에서만 프리트레인을 했음에도 불구하고 매우 좋은 결과를 얻을 수 있습니다.
+
+```python
+# Pytorch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
+tokenizer = AutoTokenizer.from_pretrained("t5-base")
+
+# T5 uses a max_length of 512 so we cut the article to 512 tokens.
+inputs = tokenizer("summarize: " + ARTICLE, return_tensors="pt", max_length=512, truncation=True)
+outputs = model.generate(
+    inputs["input_ids"], max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True
+)
+
+print(tokenizer.decode(outputs[0]))
+"""
+<pad> prosecutors say the marriages were part of an immigration scam. if convicted, barrientos faces two criminal
+counts of "offering a false instrument for filing in the first degree" she has been married 10 times, nine of them
+between 1999 and 2002.</s>
+"""
+```
