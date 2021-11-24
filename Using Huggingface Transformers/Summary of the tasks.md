@@ -773,3 +773,70 @@ counts of "offering a false instrument for filing in the first degree" she has b
 between 1999 and 2002.</s>
 """
 ```
+
+### 번역(Translation)
+
+번역은 한 언어에서 다른 언어로 텍스트를 바꾸는 작업입니다. 번역 작업에서 모델을 파인튜닝 하려면 [run_translation.py](https://github.com/huggingface/transformers/tree/master/examples/pytorch/translation/run_translation.py) 스크립트를 활용할 수 있습니다.
+
+번역 데이터셋의 예로는 WMT English to German 데이터셋이 있는데, 이 데이터셋에는 영어로 된 문장이 입력 데이터로, 독일어로 된 문장이 타겟 데이터로 포함되어 있습니다. 번역 작업에서 모델을 파인튜닝하려는 경우에 대해 [이 문서](https://github.com/huggingface/transformers/blob/master/examples/pytorch/translation/README.md)에서는 다양한 접근 방식을 설명합니다.
+
+다음은 파이프라인을 사용하여 번역을 수행하는 예입니다. 다중 작업 혼합 데이터 세트(WMT 포함)에서 프리트레인된 T5 모델을 활용하여 번역 결과를 제공합니다.
+
+```python
+from transformers import pipeline
+
+translator = pipeline("translation_en_to_de")
+print(translator("Hugging Face is a technology company based in New York and Paris", max_length=40))
+"""
+[{'translation_text': 'Hugging Face ist ein Technologieunternehmen mit Sitz in New York und Paris.'}]
+"""
+```
+
+변역 파이프라인은 *PreTrainedModel.generate()* 메서드에 의존하므로 위와 같이 파이프라인에서 *max_length*에 대한 *PreTrainedModel.generate()*의 기본 인수를 직접 재정의할 수 있습니다.
+
+다음은 모델과 토크나이저를 사용하여 번역을 수행하는 예시입니다. 프로세스는 다음과 같습니다.
+
+1. 체크포인트에서 토크나이저 및 모델을 인스턴스화합니다.  일반적으로 Bart 또는 T5와 같은 인코더-디코더 모델을 사용하여 수행합니다.
+2. 번역해야 할 문서를 정의합니다.
+3. T5의 특수한 접두사인 "translate English to German:“을 추가합니다.
+4. 번역문 생성을 위해 *PreTrainedModel.generate()* 메서드를 사용합니다.
+
+```python
+# Pytorch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+model = AutoModelForSeq2SeqLM.from_pretrained("t5-base")
+tokenizer = AutoTokenizer.from_pretrained("t5-base")
+
+inputs = tokenizer(
+    "translate English to German: Hugging Face is a technology company based in New York and Paris",
+    return_tensors="pt"
+)
+outputs = model.generate(inputs["input_ids"], max_length=40, num_beams=4, early_stopping=True)
+
+print(tokenizer.decode(outputs[0]))
+"""
+<pad> Hugging Face ist ein Technologieunternehmen mit Sitz in New York und Paris.</s>
+"""
+```
+
+```python
+# Tensorflow
+from transformers import TFAutoModelForSeq2SeqLM, AutoTokenizer
+
+model = TFAutoModelForSeq2SeqLM.from_pretrained("t5-base")
+tokenizer = AutoTokenizer.from_pretrained("t5-base")
+
+inputs = tokenizer(
+    "translate English to German: Hugging Face is a technology company based in New York and Paris",
+    return_tensors="tf"
+)
+outputs = model.generate(inputs["input_ids"], max_length=40, num_beams=4, early_stopping=True)
+
+print(tokenizer.decode(outputs[0]))
+"""
+<pad> Hugging Face ist ein Technologieunternehmen mit Sitz in New York und Paris.
+"""
+```
+
+위의 예시와 같이 번역문이 출력됩니다.
